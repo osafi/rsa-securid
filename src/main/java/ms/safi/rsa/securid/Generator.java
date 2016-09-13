@@ -20,6 +20,8 @@ public class Generator
         Token token = new Token(serial, seed, "111111", 17369);
 
         String code = securid_compute_tokencode(token, currentTime());
+
+        System.out.println(code.substring(2));
     }
 
     private static ZonedDateTime currentTime()
@@ -62,7 +64,7 @@ public class Generator
         key0 = AES128_ECB_encrypt(key0, key1);
 
         /* key0 now contains 4 consecutive token codes */
-        int i = 0;
+        int i;
         if (is_30)
         {
             i = ((time.getMinute() & 0x01) << 3) | (((time.getSecond() >= 30) ? 1 : 0) << 2);
@@ -71,47 +73,35 @@ public class Generator
             i = (time.getMinute() & 0x03) << 2;
         }
 
-        // Correct until this point!!
+        long t1 = ((long)(key0[i + 0]) & 0xFF) << 24;
+        long t2 = ((long)(key0[i + 1]) & 0xFF) << 16;
+        long t3 = ((long)(key0[i + 2]) & 0xFF) << 8;
+        long t4 = ((long)(key0[i + 3]) & 0xFF) << 0;
 
-        int t1 = (((byte) key0[i + 0]) & 0xFF) << 24;
-        int t2 = (((byte) key0[i + 1]) & 0xFF) << 16;
-        int t3 = (((byte) key0[i + 2]) & 0xFF) << 8;
-        int t4 = (((byte) key0[i + 3]) & 0xFF) << 0;
+        long tokencode = t1 | t2 | t3 | t4;
 
-        int tokencode = t1 | t2 | t3 | t4;
-
-        int[] out = new int[16];
+        /* populate code_out backwards, adding PIN digits if available */
+        char[] out = new char[16];
         int j = ((token.flags & FLD_DIGIT_MASK) >> FLD_DIGIT_SHIFT) + 1;
-
         out[j--] = 0;
         for (i = 0; j >= 0; j--, i++)
         {
-            int c = tokencode % 10;
+            int c = (int)(tokencode % 10);
             tokencode /= 10;
 
             if (i < token.pin.length())
             {
                 char partial = token.pin.charAt(token.pin.length() - i - 1);
                 int t = partial - '0';
-                c += partial;
+                c += t;
             }
-            out[j] = (c % 10 + '0');
+            int k = c % 10;
+            int k2 = k + '0';
+            out[j] = (char)(k2);
         }
 
-        return null;
+        return new String(out);
     }
-    /* populate code_out backwards, adding PIN digits if available
-    j = ((t->flags & FLD_DIGIT_MASK) >> FLD_DIGIT_SHIFT) + 1;
-    code_out[j--] = 0;
-    for (i = 0; j >= 0; j--, i++) {
-        uint8_t c = tokencode % 10;
-        tokencode /= 10;
-
-        if (i < pin_len)
-            c += t->pin[pin_len - i - 1] - '0';
-        code_out[j] = c % 10 + '0';
-    }
-    */
 
     private static void bcd_write(int[] out, int val, int offset, int bytes)
     {
