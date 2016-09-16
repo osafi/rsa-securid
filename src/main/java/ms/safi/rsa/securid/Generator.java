@@ -1,5 +1,7 @@
 package ms.safi.rsa.securid;
 
+import ms.safi.rsa.model.Token;
+
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import java.time.Instant;
@@ -15,20 +17,20 @@ public class Generator {
         String serial = "000154434212";
         String seed = "e0:c9:5e:9c:79:a5:d9:66:61:6b:8e:3a:2a:0b:05:2a";
 
-        Token token = new Token(serial, seed, "111111", 17369);
+        //Token token = new Token(serial, seed, "111111", 17369);
 
-        String code = securid_compute_tokencode(token, currentTime());
+        //String code = securid_compute_tokencode(token, currentTime());
 
-        System.out.println(code.substring(2));
+        //System.out.println(code.substring(2));
     }
 
-    private static ZonedDateTime currentTime() {
+    public static ZonedDateTime currentTime() {
         return Instant.now().atZone(ZoneId.of("UTC"));
     }
 
     // CONVERTED C FUNCTIONS BELOW
 
-    private static String securid_compute_tokencode(Token token, ZonedDateTime time) {
+    public static String securid_compute_tokencode(Token token, ZonedDateTime time) {
         boolean is_30 = token.getInterval() == 30;
 
         int[] bcd_time = new int[8];
@@ -42,19 +44,19 @@ public class Generator {
         int[] key0 = new int[16];
         int[] key1 = new int[16];
 
-        key0 = key_from_time(bcd_time, 2, token.serial, key0);
-        key0 = AES128_ECB_encrypt(key0, token.seed);
+        key0 = key_from_time(bcd_time, 2, token.getSerial(), key0);
+        key0 = AES128_ECB_encrypt(key0, token.getSeed());
 
-        key1 = key_from_time(bcd_time, 3, token.serial, key1);
+        key1 = key_from_time(bcd_time, 3, token.getSerial(), key1);
         key1 = AES128_ECB_encrypt(key1, key0);
 
-        key0 = key_from_time(bcd_time, 4, token.serial, key0);
+        key0 = key_from_time(bcd_time, 4, token.getSerial(), key0);
         key0 = AES128_ECB_encrypt(key0, key1);
 
-        key1 = key_from_time(bcd_time, 5, token.serial, key1);
+        key1 = key_from_time(bcd_time, 5, token.getSerial(), key1);
         key1 = AES128_ECB_encrypt(key1, key0);
 
-        key0 = key_from_time(bcd_time, 8, token.serial, key0);
+        key0 = key_from_time(bcd_time, 8, token.getSerial(), key0);
         key0 = AES128_ECB_encrypt(key0, key1);
 
         /* key0 now contains 4 consecutive token codes */
@@ -74,19 +76,19 @@ public class Generator {
 
         /* populate code_out backwards, adding PIN digits if available */
         char[] out = new char[16];
-        int j = ((token.flags & FLD_DIGIT_MASK) >> FLD_DIGIT_SHIFT) + 1;
+        int j = ((token.getFlags() & FLD_DIGIT_MASK) >> FLD_DIGIT_SHIFT) + 1;
         out[j--] = 0;
         for (i = 0; j >= 0; j--, i++) {
             int c = (int) (tokencode % 10);
             tokencode /= 10;
 
-            if (i < token.pin.length()) {
-                c += token.pin.charAt(token.pin.length() - i - 1) - '0';
+            if (i < token.getPin().length()) {
+                c += token.getPin().charAt(token.getPin().length() - i - 1) - '0';
             }
             out[j] = (char) (c % 10 + '0');
         }
 
-        return new String(out);
+        return new String(out).trim();
     }
 
     private static void bcd_write(int[] out, int val, int offset, int bytes) {
@@ -141,32 +143,4 @@ public class Generator {
         }
         return null;
     }
-
-    static class Token {
-        private String serial;
-        private int flags;
-        private int[] seed = new int[16];
-        private String pin;
-
-        public Token(String serial, String seed, String pin, int flags) {
-            this.serial = serial;
-            this.pin = pin;
-            this.flags = flags;
-            this.seed = Arrays.stream(seed.split(":"))
-                              .map(h -> Integer.parseInt(h, 16))
-                              .mapToInt(Integer::intValue)
-                              .toArray();
-        }
-
-        public int getInterval() {
-            int FLD_NUMSECONDS_SHIFT = 0;
-            int FLD_NUMSECONDS_MASK = (0x03 << FLD_NUMSECONDS_SHIFT);
-
-            if (((this.flags & FLD_NUMSECONDS_MASK) >> FLD_NUMSECONDS_SHIFT) == 0)
-                return 30;
-            else
-                return 60;
-        }
-    }
-
 }
