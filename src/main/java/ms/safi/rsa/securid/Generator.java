@@ -13,6 +13,7 @@ public class Generator {
     private static final int FLD_DIGIT_SHIFT = 6;
     private static final int FLD_DIGIT_MASK = (0x07 << FLD_DIGIT_SHIFT);
 
+    /*
     public static void main(String[] args) {
         String serial = "000154434212";
         String seed = "e0:c9:5e:9c:79:a5:d9:66:61:6b:8e:3a:2a:0b:05:2a";
@@ -22,7 +23,7 @@ public class Generator {
         //String code = securid_compute_tokencode(token, currentTime());
 
         //System.out.println(code.substring(2));
-    }
+    }*/
 
     public static ZonedDateTime currentTime() {
         return Instant.now().atZone(ZoneId.of("UTC"));
