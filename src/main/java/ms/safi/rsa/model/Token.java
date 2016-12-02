@@ -1,27 +1,32 @@
 package ms.safi.rsa.model;
 
+import io.swagger.annotations.ApiModelProperty;
+
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import java.util.Arrays;
 
 public class Token {
 
-    @NotNull(message = "Serial must be 12 characters")
+    @ApiModelProperty("RSA token serial number; 12 digits")
+    @NotNull(message = "Serial must be 12 digits")
     @Size(min = 12, max = 12)
     private String serial;
-    @NotNull
-    private int[] seed;
+
+    @ApiModelProperty("Decrypted device seed value in 16 octets (hex) separated by ':'")
+    @NotNull(message = "Seed must be 16 octets separated by ':' (47 characters)")
+    @Size(min = 47, max = 47)
+    private String seedOctets;
+
+    @ApiModelProperty("Token PIN number")
     private String pin;
+
+    @ApiModelProperty("Internal flag used in token generation algorithm; " +
+            "defaults to 17369 which is for tokens updating every 60 seconds")
     private int flags = 17369;
+
+    @ApiModelProperty("Length of the returned token; defaults to 6")
     private int length = 6;
-
-    public int getLength() {
-        return length;
-    }
-
-    public void setLength(int length) {
-        this.length = length;
-    }
 
     public String getSerial() {
         return serial;
@@ -31,15 +36,19 @@ public class Token {
         this.serial = serial;
     }
 
-    public int[] getSeed() {
-        return seed;
+    public String getSeedOctets() {
+        return seedOctets;
     }
 
-    public void setSeed(String seed) {
-        this.seed = Arrays.stream(seed.split(":"))
-                          .map(h -> Integer.parseInt(h, 16))
-                          .mapToInt(Integer::intValue)
-                          .toArray();
+    public void setSeedOctets(String seedOctets) {
+        this.seedOctets = seedOctets;
+    }
+
+    public int[] getSeed() {
+        return Arrays.stream(seedOctets.split(":"))
+                     .map(h -> Integer.parseInt(h, 16))
+                     .mapToInt(Integer::intValue)
+                     .toArray();
     }
 
     public String getPin() {
@@ -58,6 +67,14 @@ public class Token {
         this.flags = flags;
     }
 
+    public int getLength() {
+        return length;
+    }
+
+    public void setLength(int length) {
+        this.length = length;
+    }
+
     public int getInterval() {
         int FLD_NUMSECONDS_SHIFT = 0;
         int FLD_NUMSECONDS_MASK = (0x03 << FLD_NUMSECONDS_SHIFT);
@@ -72,7 +89,7 @@ public class Token {
     public String toString() {
         return "Token{" +
                 "serial='" + serial + '\'' +
-                ", seed=" + Arrays.toString(seed) +
+                ", seedOctets='" + seedOctets + '\'' +
                 ", pin='" + pin + '\'' +
                 ", flags=" + flags +
                 ", length=" + length +
