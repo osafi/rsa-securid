@@ -8,12 +8,12 @@ import java.util.Arrays;
 
 public class Token {
 
-    @ApiModelProperty("RSA token serial number; 12 digits")
+    @ApiModelProperty(value = "RSA token serial number; 12 digits", required = true)
     @NotNull(message = "Serial must be 12 digits")
     @Size(min = 12, max = 12)
     private String serial;
 
-    @ApiModelProperty("Decrypted device seed value in 16 octets (hex) separated by ':'")
+    @ApiModelProperty(value = "Decrypted device seed value in 16 octets (hex) separated by ':'", required = true)
     @NotNull(message = "Seed must be 16 octets separated by ':' (47 characters)")
     @Size(min = 47, max = 47)
     private String seedOctets;
