@@ -8,7 +8,7 @@ import java.util.Arrays;
 
 public class Token {
 
-    @ApiModelProperty(value = "RSA token serial number; 12 digits; additional info here", required = true)
+    @ApiModelProperty(value = "RSA token serial number; 12 digits", required = true)
     @NotNull(message = "Serial must be 12 digits")
     @Size(min = 12, max = 12)
     private String serial;
