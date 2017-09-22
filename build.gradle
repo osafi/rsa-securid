@@ -37,6 +37,10 @@ dependencies {
     testCompile('org.springframework.boot:spring-boot-starter-test')
 }
 
+springBoot {
+    mainClass = "ms.safi.rsa.SecurIdTokenGeneratorApplication"
+}
+
 task buildDocker(type: Docker) {
     baseImage = 'openjdk:alpine'
     push = project.hasProperty('push')
