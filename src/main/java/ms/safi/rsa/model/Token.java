@@ -1,6 +1,7 @@
 package ms.safi.rsa.model;
 
 import io.swagger.annotations.ApiModelProperty;
+import picocli.CommandLine.Option;
 
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
@@ -8,23 +9,30 @@ import java.util.Arrays;
 
 public class Token {
 
+    @Option(names = {"-s", "--serial"}, description = "RSA token serial number; 12 digits", required = true)
     @ApiModelProperty(value = "RSA token serial number; 12 digits", required = true)
     @NotNull(message = "Serial must be 12 digits")
     @Size(min = 12, max = 12)
     private String serial;
 
+    @Option(names = {"-d", "--seed"}, description = "Decrypted device seed value in 16 octets (hex) separated by ':'",
+            required = true)
     @ApiModelProperty(value = "Decrypted device seed value in 16 octets (hex) separated by ':'", required = true)
     @NotNull(message = "Seed must be 16 octets separated by ':' (47 characters)")
     @Size(min = 47, max = 47)
     private String seedOctets;
 
+    @Option(names = {"-p", "--pin"}, description = "Token PIN number")
     @ApiModelProperty("Token PIN number")
     private String pin;
 
+    @Option(names = {"-f", "--flag"}, description = "Internal flag used in token generation algorithm; " +
+            "defaults to 17369 which is for tokens updating every 60 seconds")
     @ApiModelProperty("Internal flag used in token generation algorithm; " +
             "defaults to 17369 which is for tokens updating every 60 seconds")
     private int flags = 17369;
 
+    @Option(names = {"-l", "--length"}, description = "Length of the returned token; defaults to 6")
     @ApiModelProperty("Length of the returned token; defaults to 6")
     private int length = 6;
 

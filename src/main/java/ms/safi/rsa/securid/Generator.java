@@ -1,6 +1,8 @@
 package ms.safi.rsa.securid;
 
 import ms.safi.rsa.model.Token;
+import picocli.CommandLine;
+import picocli.CommandLine.MissingParameterException;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
@@ -131,5 +133,15 @@ public class Generator {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public static void main(String[] args) {
+        try {
+            Token token = CommandLine.populateCommand(new Token(), args);
+            String code = securid_compute_tokencode(token, currentTime());
+            System.out.println(code.substring(code.length() - token.getLength()));
+        } catch(MissingParameterException ex) {
+            CommandLine.usage(new Token(), System.out);
+        }
     }
 }
