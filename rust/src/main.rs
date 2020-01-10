@@ -54,7 +54,9 @@ fn main() {
     let seed = value_t!(matches, "seed", Seed).unwrap_or_else(|e| e.exit());
     let serial = value_t!(matches, "serial", Serial).unwrap_or_else(|e| e.exit());
 
-    let tokens = Token { seed, serial };
+    let pin = matches.value_of("pin").unwrap().chars().map(|c| c.to_digit(10).unwrap() as u8).collect();
+
+    let tokens = Token { serial, seed, pin };
 
     let time = Utc::now();
     println!("{}", tokens.code(&time));
