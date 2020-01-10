@@ -49,8 +49,8 @@ impl Token {
             let mut c = (token_code % 10) as u8;
             token_code /= 10;
 
-            if i < 8 {
-                c += 0;
+            if i < self.pin.len() {
+                c += self.pin[self.pin.len() - i - 1];
             }
             out.push(c % 10);
 
