@@ -4,7 +4,7 @@ extern crate clap;
 use chrono::prelude::*;
 use clap::{App, Arg};
 use regex::Regex;
-use rsa_securid::{Serial, Token};
+use rsa_securid::{bcd, Token};
 
 fn main() {
     let matches = App::new("RSA SecurID Authenticate")
@@ -52,7 +52,16 @@ fn main() {
         )
         .get_matches();
 
-    let serial = value_t!(matches, "serial", Serial).unwrap_or_else(|e| e.exit());
+    let serial: Vec<_> = {
+        let value = matches.value_of("serial").unwrap();
+        let re = Regex::new(r"^\d{12}$").unwrap();
+        if !re.is_match(&value) {
+            panic!("the serial needs to be 12 digits");
+        }
+
+        let digits: Vec<_> = value.chars().map(|c| c.to_digit(10).unwrap() as u8).collect();
+        digits.chunks(2).map(|c| bcd(10*c[0] + c[1])).collect()
+    };
 
     let seed = {
         let value = matches.value_of("seed").unwrap();

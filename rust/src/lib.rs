@@ -1,21 +1,19 @@
 use bytes::{BufMut, Bytes, BytesMut};
 use chrono::prelude::*;
 use openssl::symm::{encrypt, Cipher};
-use regex::Regex;
 use std::convert::TryInto;
-use std::str::FromStr;
 
 const FLD_DIGIT_SHIFT: u8 = 6;
 const FLD_DIGIT_MASK: u16 = (0b111 << FLD_DIGIT_SHIFT);
 
-pub fn bcd_write(bytes: &mut BytesMut, val: u8) {
+pub fn bcd(val: u8) -> u8 {
     let mut out = val % 10;
     out |= (val / 10 % 10) << 4;
-    bytes.put_u8(out);
+    out
 }
 
 pub struct Token {
-    pub serial: Serial,
+    pub serial: Vec<u8>,
     pub seed: Vec<u8>,
     pub pin: Vec<u8>,
 }
@@ -76,7 +74,7 @@ impl Token {
         for i in 0..bytes.capacity() {
             bytes[i] = match i {
                 0..=7 => if i < bcd_time_slice.len() { bcd_time_slice[i] } else { 0xaa },
-                8..=11 => self.serial.bytes[i - 6],
+                8..=11 => self.serial[i - 6],
                 12..=15 => 0xbb,
                 _ => key[i],
             }
@@ -88,42 +86,22 @@ impl Token {
     fn bcd_time(time: &DateTime<Utc>) -> Bytes {
         let mut bytes = BytesMut::with_capacity(8);
 
-        bcd_write(&mut bytes, (time.year() % 100) as u8);
-        bcd_write(&mut bytes, (time.year() / 100 % 100) as u8);
-        bcd_write(&mut bytes, time.month() as u8);
-        bcd_write(&mut bytes, time.day() as u8);
-        bcd_write(&mut bytes, time.hour() as u8);
-        bcd_write(&mut bytes, (time.minute() & !0b11) as u8);
+        Self::bcd_write(&mut bytes, (time.year() % 100) as u8);
+        Self::bcd_write(&mut bytes, (time.year() / 100 % 100) as u8);
+        Self::bcd_write(&mut bytes, time.month() as u8);
+        Self::bcd_write(&mut bytes, time.day() as u8);
+        Self::bcd_write(&mut bytes, time.hour() as u8);
+        Self::bcd_write(&mut bytes, (time.minute() & !0b11) as u8);
         bytes.put_u8(0);
         bytes.put_u8(0);
 
         bytes.freeze()
     }
-}
 
-pub struct Serial {
-    bytes: Bytes,
-}
-
-impl FromStr for Serial {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let re = Regex::new(r"^\d{12}$").unwrap();
-        if !re.is_match(&s) {
-            return Err("the serial needs to be 12 digits".into());
-        }
-
-        let digits: Vec<_> = s.chars().map(|c| c.to_digit(10).unwrap() as u8).collect();
-
-        let mut bytes = BytesMut::with_capacity(6);
-        for w in digits.chunks(2) {
-            let val = 10 * w[0] + w[1];
-            bcd_write(&mut bytes, val);
-        }
-
-        let bytes = bytes.freeze();
-        Ok(Serial { bytes })
+    fn bcd_write(bytes: &mut BytesMut, val: u8) {
+        let mut out = val % 10;
+        out |= (val / 10 % 10) << 4;
+        bytes.put_u8(out);
     }
 }
 
