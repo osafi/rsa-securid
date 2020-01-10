@@ -72,27 +72,16 @@ impl Token {
     }
 
     fn key_from_time(&self, bcd_time_slice: &Bytes, key: &Bytes) -> Bytes {
-        let mut bytes = BytesMut::with_capacity(16);
-        bytes.put_slice(key);
+        let mut bytes = BytesMut::new();
+        bytes.resize(16, 0);
 
-        for i in 0..8 {
-            bytes[i] = 0xaa;
-        }
-
-        for i in 12..key.len() {
-            bytes[i] = 0xbb;
-        }
-
-        for (i, val) in bcd_time_slice.iter().enumerate() {
-            bytes[i] = *val;
-        }
-
-        let mut k = 8;
-        let mut i = 2;
-        while i < 6 {
-            bytes[k] = self.serial.bytes[i];
-            k += 1;
-            i += 1;
+        for i in 0..bytes.capacity() {
+            bytes[i] = match i {
+                0..=7 => if i < bcd_time_slice.len() { bcd_time_slice[i] } else { 0xaa },
+                8..=11 => self.serial.bytes[i - 6],
+                12..=15 => 0xbb,
+                _ => key[i],
+            }
         }
 
         return bytes.freeze();
@@ -150,21 +139,15 @@ impl FromStr for Serial {
             return Err("the serial needs to be 12 digits".into());
         }
 
-        let digits: Vec<_> = s
-            .chars()
-            .map(|c| c.to_digit(10).unwrap() as u8)
-            .collect();
+        let digits: Vec<_> = s.chars().map(|c| c.to_digit(10).unwrap() as u8).collect();
 
         let mut bytes = BytesMut::with_capacity(6);
         for w in digits.chunks(2) {
-            dbg!(&w);
             let val = 10 * w[0] + w[1];
-            dbg!(&val);
             bcd_write(&mut bytes, val);
         }
 
         let bytes = bytes.freeze();
-        dbg!(&bytes);
         Ok(Serial { bytes })
     }
 }
