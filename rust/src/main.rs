@@ -39,7 +39,7 @@ fn main() {
                 .value_name("FLAGS")
                 .help("Internal flag for token generation algorithm")
                 .require_equals(true)
-                .default_value("0100001111011001"),
+                .default_value("17369"),
         )
         .arg(
             Arg::with_name("length")
@@ -77,8 +77,9 @@ fn main() {
     };
 
     let pin = matches.value_of("pin").unwrap().chars().map(|c| c.to_digit(10).unwrap() as u8).collect();
+    let flags = matches.value_of("flags").unwrap().parse().unwrap();
 
-    let tokens = Token { serial, seed, pin };
+    let tokens = Token { serial, seed, pin, flags };
 
     let time = Utc::now();
     println!("{}", tokens.code(&time));

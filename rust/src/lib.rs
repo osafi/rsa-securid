@@ -5,6 +5,8 @@ use std::convert::TryInto;
 
 const FLD_DIGIT_SHIFT: u8 = 6;
 const FLD_DIGIT_MASK: u16 = (0b111 << FLD_DIGIT_SHIFT);
+const FLD_NUMSECONDS_SHIFT: u16 = 0;
+const FLD_NUMSECONDS_MASK: u16 = (0b11 << FLD_NUMSECONDS_SHIFT);
 
 pub fn bcd(val: u8) -> u8 {
     let mut out = val % 10;
@@ -16,11 +18,12 @@ pub struct Token {
     pub serial: Vec<u8>,
     pub seed: Vec<u8>,
     pub pin: Vec<u8>,
+    pub flags: u16,
 }
 
 impl Token {
     pub fn code(&self, time: &DateTime<Utc>) -> String {
-        let bcd_time = Self::bcd_time(time);
+        let bcd_time = self.bcd_time(time);
 
         let key0 = Bytes::from(vec![0; 16]);
         let key1 = Bytes::copy_from_slice(&self.seed);
@@ -44,7 +47,7 @@ impl Token {
         let mut token_code = u32::from_be_bytes(key0[i..i+4].try_into().unwrap());
 
         let mut out = vec![];
-        let mut j: isize = ((0b0100001111011001 & FLD_DIGIT_MASK) >> FLD_DIGIT_SHIFT) as isize;
+        let mut j: isize = ((self.flags & FLD_DIGIT_MASK) >> FLD_DIGIT_SHIFT) as isize;
         while j >= 0 {
             let mut c = (token_code % 10) as u8;
             token_code /= 10;
@@ -83,7 +86,7 @@ impl Token {
         return bytes.freeze();
     }
 
-    fn bcd_time(time: &DateTime<Utc>) -> Bytes {
+    fn bcd_time(&self, time: &DateTime<Utc>) -> Bytes {
         let mut bytes = BytesMut::with_capacity(8);
 
         bytes.put_slice(&[
@@ -92,13 +95,33 @@ impl Token {
             bcd(time.month() as u8),
             bcd(time.day() as u8),
             bcd(time.hour() as u8),
-            bcd((time.minute() & !0b11) as u8),
+            bcd((time.minute() & self.minute_mask()) as u8),
             0,
             0,
         ]);
 
         bytes.freeze()
     }
+
+    fn interval(&self) -> Interval {
+        if (self.flags & FLD_NUMSECONDS_MASK) >> FLD_NUMSECONDS_SHIFT == 0 {
+            Interval::ThirtySeconds
+        } else {
+            Interval::OneMinute
+        }
+    }
+
+    fn minute_mask(&self) -> u32 {
+        match self.interval() {
+            Interval::ThirtySeconds => !0b11,
+            Interval::OneMinute => !0b01,
+        }
+    }
+}
+
+enum Interval {
+    ThirtySeconds,
+    OneMinute,
 }
 
 // #[cfg(test)]
