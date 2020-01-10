@@ -13,23 +13,23 @@ impl Token {
     pub fn code(&self, time: &DateTime<Utc>) -> String {
         let bcd_time = Self::bcd_time(time);
 
-        let mut key0 = [0; 16];
-        let mut key1 = [0; 16];
+        let key0 = Bytes::from(vec![0; 16]);
+        let key1 = Bytes::from(vec![0; 16]);
 
-        Self::key_from_time(&bcd_time.slice(0..2), &self.serial.bytes, &mut key0);
-        aes128_ecb_encrypt(&mut key0, &self.seed.bytes);
+        let key0 = self.key_from_time(&bcd_time.slice(0..2), &key0);
+        let key0 = Self::aes128_ecb_encrypt(&key0, &self.seed.bytes);
 
-        Self::key_from_time(&bcd_time.slice(0..3), &self.serial.bytes, &mut key1);
-        aes128_ecb_encrypt(&mut key1, &key0);
+        let key1 = self.key_from_time(&bcd_time.slice(0..3), &key1);
+        let key1 = Self::aes128_ecb_encrypt(&key1, &key0);
 
-        Self::key_from_time(&bcd_time.slice(0..4), &self.serial.bytes, &mut key0);
-        aes128_ecb_encrypt(&mut key0, &key1);
+        let key0 = self.key_from_time(&bcd_time.slice(0..4), &key0);
+        let key0 = Self::aes128_ecb_encrypt(&key0, &key1);
 
-        Self::key_from_time(&bcd_time.slice(0..5), &self.serial.bytes, &mut key1);
-        aes128_ecb_encrypt(&mut key1, &key0);
+        let key1 = self.key_from_time(&bcd_time.slice(0..5), &key1);
+        let key1 = Self::aes128_ecb_encrypt(&key1, &key0);
 
-        Self::key_from_time(&bcd_time.slice(0..8), &self.serial.bytes, &mut key0);
-        aes128_ecb_encrypt(&mut key0, &key1);
+        let key0 = self.key_from_time(&bcd_time.slice(0..8), &key0);
+        let key0 = Self::aes128_ecb_encrypt(&key0, &key1);
 
         let mut i = ((time.minute() as usize) & 0b11) << 2;
         let t1 = ((key0[i + 0] as u32) & 0xff) << 24;
@@ -56,32 +56,37 @@ impl Token {
         out.iter().rev().map(u8::to_string).collect()
     }
 
-    fn aes128_ecb_encrypt(input: &mut [u8; 16], key: &[u8]) {
+    fn aes128_ecb_encrypt(input: &Bytes, key: &Bytes) -> Bytes {
         let cipher = Cipher::aes_128_ecb();
         let output = encrypt(cipher, key, None, input).unwrap();
-        for i in 0..16 {
-            input[i] = output[i];
-        }
+        Bytes::from(output).slice(0..16)
     }
 
-    fn key_from_time(bcd_time_slice: &Bytes, serial: &Bytes, key: &mut [u8; 16]) {
+    fn key_from_time(&self, bcd_time_slice: &Bytes, key: &Bytes) -> Bytes {
+        let mut bytes = BytesMut::with_capacity(16);
+        bytes.put_slice(key);
+
         for i in 0..8 {
-            key[i] = 0xaa;
+            bytes[i] = 0xaa;
         }
+
         for i in 12..key.len() {
-            key[i] = 0xbb;
+            bytes[i] = 0xbb;
         }
+
         for (i, val) in bcd_time_slice.iter().enumerate() {
-            key[i] = *val;
+            bytes[i] = *val;
         }
 
         let mut k = 8;
         let mut i = 4;
         while i < 12 {
-            key[k] = (serial[i] << 4) | serial[i + 1];
+            bytes[k] = (self.serial.bytes[i] << 4) | self.serial.bytes[i + 1];
             k += 1;
             i += 2;
         }
+
+        return bytes.freeze();
     }
 
     fn bcd_time(time: &DateTime<Utc>) -> Bytes {
