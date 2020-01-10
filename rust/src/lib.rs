@@ -16,7 +16,7 @@ pub fn bcd_write(bytes: &mut BytesMut, val: u8) {
 
 pub struct Token {
     pub serial: Serial,
-    pub seed: Seed,
+    pub seed: Vec<u8>,
     pub pin: Vec<u8>,
 }
 
@@ -25,10 +25,10 @@ impl Token {
         let bcd_time = Self::bcd_time(time);
 
         let key0 = Bytes::from(vec![0; 16]);
-        let key1 = Bytes::from(vec![0; 16]);
+        let key1 = Bytes::copy_from_slice(&self.seed);
 
         let key0 = self.key_from_time(&bcd_time.slice(0..2), &key0);
-        let key0 = Self::aes128_ecb_encrypt(&key0, &self.seed.bytes);
+        let key0 = Self::aes128_ecb_encrypt(&key0, &key1);
 
         let key1 = self.key_from_time(&bcd_time.slice(0..3), &key1);
         let key1 = Self::aes128_ecb_encrypt(&key1, &key0);
@@ -124,29 +124,6 @@ impl FromStr for Serial {
 
         let bytes = bytes.freeze();
         Ok(Serial { bytes })
-    }
-}
-
-pub struct Seed {
-    bytes: Bytes,
-}
-
-impl FromStr for Seed {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let re = Regex::new(r"^(?:[[:xdigit:]]{2}:){15}[[:xdigit:]]{2}$").unwrap();
-        if !re.is_match(&s) {
-            return Err("the seed needs to be 16 octets separated by ':'".into());
-        }
-
-        let bytes = s
-            .split(':')
-            .map(|x| u8::from_str_radix(x, 16).unwrap())
-            .collect::<Vec<_>>()
-            .into();
-
-        Ok(Seed { bytes })
     }
 }
 
