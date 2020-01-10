@@ -43,7 +43,7 @@ impl Token {
         let key0 = self.key_from_time(&bcd_time.slice(0..8), &key0);
         let key0 = Self::aes128_ecb_encrypt(&key0, &key1);
 
-        let mut i = match self.interval() {
+        let i = match self.interval() {
             Interval::ThirtySeconds => {
                 // translated without testing, so this might be wrong...
                 let mut i = 0;
@@ -54,27 +54,26 @@ impl Token {
                     i |= 0b0100;
                 }
                 i
-            },
+            }
             Interval::OneMinute => ((time.minute() as usize) & 0b11) << 2,
         };
-        let mut token_code = u32::from_be_bytes(key0[i..i+4].try_into().unwrap());
 
-        let mut out = vec![];
-        let mut j: isize = ((self.flags & FLD_DIGIT_MASK) >> FLD_DIGIT_SHIFT) as isize;
-        while j >= 0 {
-            let mut c = (token_code % 10) as u8;
-            token_code /= 10;
+        let raw_digits: Vec<_> = u32::from_be_bytes(key0[i..i + 4].try_into().unwrap())
+            .to_string()
+            .chars()
+            .map(|c| c.to_digit(10).unwrap() as u8)
+            .collect();
 
-            if i < self.pin.len() {
-                c += self.pin[self.pin.len() - i - 1];
-            }
-            out.push(c % 10);
+        let len = ((self.flags & FLD_DIGIT_MASK) >> FLD_DIGIT_SHIFT) as usize;
+        let substr_begin = raw_digits.len() - len - 1;
+        let raw_digits = raw_digits.iter().skip(substr_begin);
 
-            j -= 1;
-            i += 1;
-        }
-
-        out.iter().rev().map(u8::to_string).collect()
+        let filled_pin = self.pin.iter().chain([0].iter().cycle());
+        raw_digits
+            .zip(filled_pin)
+            .map(|(x, pin)| x + pin)
+            .map(|x| x.to_string())
+            .collect()
     }
 
     fn aes128_ecb_encrypt(input: &Bytes, key: &Bytes) -> Bytes {
@@ -89,7 +88,13 @@ impl Token {
 
         for i in 0..bytes.capacity() {
             bytes[i] = match i {
-                0..=7 => if i < bcd_time_slice.len() { bcd_time_slice[i] } else { 0xaa },
+                0..=7 => {
+                    if i < bcd_time_slice.len() {
+                        bcd_time_slice[i]
+                    } else {
+                        0xaa
+                    }
+                }
                 8..=11 => self.serial[i - 6],
                 12..=15 => 0xbb,
                 _ => key[i],
@@ -126,8 +131,8 @@ impl Token {
 
     fn minute_mask(&self) -> u32 {
         match self.interval() {
-            Interval::ThirtySeconds => !0b11,
-            Interval::OneMinute => !0b01,
+            Interval::ThirtySeconds => !0b01,
+            Interval::OneMinute => !0b11,
         }
     }
 }

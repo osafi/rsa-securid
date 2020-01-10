@@ -59,8 +59,11 @@ fn main() {
             panic!("the serial needs to be 12 digits");
         }
 
-        let digits: Vec<_> = value.chars().map(|c| c.to_digit(10).unwrap() as u8).collect();
-        digits.chunks(2).map(|c| bcd(10*c[0] + c[1])).collect()
+        let digits: Vec<_> = value
+            .chars()
+            .map(|c| c.to_digit(10).unwrap() as u8)
+            .collect();
+        digits.chunks(2).map(|c| bcd(10 * c[0] + c[1])).collect()
     };
 
     let seed = {
@@ -76,10 +79,20 @@ fn main() {
             .collect()
     };
 
-    let pin = matches.value_of("pin").unwrap().chars().map(|c| c.to_digit(10).unwrap() as u8).collect();
+    let pin = matches
+        .value_of("pin")
+        .unwrap()
+        .chars()
+        .map(|c| c.to_digit(10).unwrap() as u8)
+        .collect();
     let flags = matches.value_of("flags").unwrap().parse().unwrap();
 
-    let tokens = Token { serial, seed, pin, flags };
+    let tokens = Token {
+        serial,
+        seed,
+        pin,
+        flags,
+    };
 
     let time = Utc::now();
     println!("{}", tokens.code(&time));
