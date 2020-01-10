@@ -1,8 +1,5 @@
-#![feature(test)]
-
 extern crate chrono;
 extern crate openssl;
-extern crate test;
 
 use std::env;
 use rsa_securid::code;
