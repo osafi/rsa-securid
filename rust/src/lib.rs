@@ -43,7 +43,20 @@ impl Token {
         let key0 = self.key_from_time(&bcd_time.slice(0..8), &key0);
         let key0 = Self::aes128_ecb_encrypt(&key0, &key1);
 
-        let mut i = ((time.minute() as usize) & 0b11) << 2;
+        let mut i = match self.interval() {
+            Interval::ThirtySeconds => {
+                // translated without testing, so this might be wrong...
+                let mut i = 0;
+                if time.minute() % 2 == 1 {
+                    i |= 0b1000;
+                }
+                if time.minute() >= 30 {
+                    i |= 0b0100;
+                }
+                i
+            },
+            Interval::OneMinute => ((time.minute() as usize) & 0b11) << 2,
+        };
         let mut token_code = u32::from_be_bytes(key0[i..i+4].try_into().unwrap());
 
         let mut out = vec![];
@@ -119,6 +132,7 @@ impl Token {
     }
 }
 
+#[derive(Debug)]
 enum Interval {
     ThirtySeconds,
     OneMinute,
