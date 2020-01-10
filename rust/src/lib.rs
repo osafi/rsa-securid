@@ -4,7 +4,7 @@ use openssl::symm::{encrypt, Cipher};
 const FLD_DIGIT_SHIFT: u8 = 6;
 const FLD_DIGIT_MASK: u16 = (0b111 << FLD_DIGIT_SHIFT);
 
-pub fn code(serial: &str, seed: &[u8]) -> String {
+pub fn code(serial: &[u8], seed: &[u8]) -> String {
     let time = Utc::now();
     let bcd_time = bcd_time(time);
 
@@ -59,7 +59,7 @@ fn aes128_ecb_encrypt(input: &mut [u8; 16], key: &[u8]) {
     }
 }
 
-fn key_from_time(bcd_time: [u8; 8], bcd_time_bytes: usize, serial: &str, key: &mut [u8; 16]) {
+fn key_from_time(bcd_time: [u8; 8], bcd_time_bytes: usize, serial: &[u8], key: &mut [u8; 16]) {
     for i in 0..8 {
         key[i] = 0xaa;
     }
@@ -69,11 +69,6 @@ fn key_from_time(bcd_time: [u8; 8], bcd_time_bytes: usize, serial: &str, key: &m
     for i in 0..bcd_time_bytes {
         key[i] = bcd_time[i];
     }
-
-    let serial: Vec<_> = serial
-        .chars()
-        .map(|c| c.to_digit(10).unwrap() as u8)
-        .collect();
 
     let mut k = 8;
     let mut i = 4;

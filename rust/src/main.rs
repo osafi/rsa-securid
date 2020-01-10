@@ -8,7 +8,12 @@ use std::env;
 use rsa_securid::code;
 
 fn main() {
-    let serial = env::var("RSA_AUTH_SERIAL").unwrap();
+    let serial: Vec<_> = env::var("RSA_AUTH_SERIAL")
+        .unwrap()
+        .chars()
+        .map(|c| c.to_digit(10).unwrap() as u8)
+        .collect();
+
     let seed: Vec<u8> = env::var("RSA_AUTH_SEED")
         .unwrap()
         .split(':')
