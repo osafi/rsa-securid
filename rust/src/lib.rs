@@ -2,6 +2,7 @@ use bytes::{BufMut, Bytes, BytesMut};
 use chrono::prelude::*;
 use openssl::symm::{encrypt, Cipher};
 use regex::Regex;
+use std::convert::TryInto;
 use std::str::FromStr;
 
 const FLD_DIGIT_SHIFT: u8 = 6;
@@ -41,11 +42,7 @@ impl Token {
         let key0 = Self::aes128_ecb_encrypt(&key0, &key1);
 
         let mut i = ((time.minute() as usize) & 0b11) << 2;
-        let t1 = ((key0[i + 0] as u32) & 0xff) << 24;
-        let t2 = ((key0[i + 1] as u32) & 0xff) << 16;
-        let t3 = ((key0[i + 2] as u32) & 0xff) << 8;
-        let t4 = ((key0[i + 3] as u32) & 0xff) << 0;
-        let mut token_code = t1 | t2 | t3 | t4;
+        let mut token_code = u32::from_be_bytes(key0[i..i+4].try_into().unwrap());
 
         let mut out = vec![];
         let mut j: isize = ((0b0100001111011001 & FLD_DIGIT_MASK) >> FLD_DIGIT_SHIFT) as isize;
