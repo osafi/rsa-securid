@@ -86,22 +86,16 @@ impl Token {
     fn bcd_time(time: &DateTime<Utc>) -> Bytes {
         let mut bytes = BytesMut::with_capacity(8);
 
-        Self::bcd_write(&mut bytes, (time.year() % 100) as u8);
-        Self::bcd_write(&mut bytes, (time.year() / 100 % 100) as u8);
-        Self::bcd_write(&mut bytes, time.month() as u8);
-        Self::bcd_write(&mut bytes, time.day() as u8);
-        Self::bcd_write(&mut bytes, time.hour() as u8);
-        Self::bcd_write(&mut bytes, (time.minute() & !0b11) as u8);
+        bytes.put_u8(bcd((time.year() % 100) as u8));
+        bytes.put_u8(bcd((time.year() / 100 % 100) as u8));
+        bytes.put_u8(bcd(time.month() as u8));
+        bytes.put_u8(bcd(time.day() as u8));
+        bytes.put_u8(bcd(time.hour() as u8));
+        bytes.put_u8(bcd((time.minute() & !0b11) as u8));
         bytes.put_u8(0);
         bytes.put_u8(0);
 
         bytes.freeze()
-    }
-
-    fn bcd_write(bytes: &mut BytesMut, val: u8) {
-        let mut out = val % 10;
-        out |= (val / 10 % 10) << 4;
-        bytes.put_u8(out);
     }
 }
 
