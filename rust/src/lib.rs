@@ -86,14 +86,16 @@ impl Token {
     fn bcd_time(time: &DateTime<Utc>) -> Bytes {
         let mut bytes = BytesMut::with_capacity(8);
 
-        bytes.put_u8(bcd((time.year() % 100) as u8));
-        bytes.put_u8(bcd((time.year() / 100 % 100) as u8));
-        bytes.put_u8(bcd(time.month() as u8));
-        bytes.put_u8(bcd(time.day() as u8));
-        bytes.put_u8(bcd(time.hour() as u8));
-        bytes.put_u8(bcd((time.minute() & !0b11) as u8));
-        bytes.put_u8(0);
-        bytes.put_u8(0);
+        bytes.put_slice(&[
+            bcd((time.year() % 100) as u8),
+            bcd((time.year() / 100 % 100) as u8),
+            bcd(time.month() as u8),
+            bcd(time.day() as u8),
+            bcd(time.hour() as u8),
+            bcd((time.minute() & !0b11) as u8),
+            0,
+            0,
+        ]);
 
         bytes.freeze()
     }
