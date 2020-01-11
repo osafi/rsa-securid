@@ -1,6 +1,7 @@
 use bytes::{BufMut, Bytes, BytesMut};
 use chrono::prelude::*;
 use openssl::symm::{encrypt, Cipher};
+use regex::Regex;
 use std::convert::TryInto;
 
 const FLD_DIGIT_SHIFT: u8 = 6;
@@ -15,15 +16,57 @@ pub fn bcd(val: u8) -> u8 {
 }
 
 pub struct Token {
-    pub serial: Vec<u8>,
-    pub seed: Vec<u8>,
-    pub pin: Vec<u8>,
-    pub flags: u16,
+    serial: Vec<u8>,
+    seed: Vec<u8>,
+    pin: Vec<u8>,
+    flags: u16,
+}
+
+pub fn code(serial: &str, seed: &str, pin: &str, flags: &str) -> String {
+    let time = Utc::now().to_rfc3339();
+    Token::new(serial, seed, pin, flags).code(&time)
 }
 
 impl Token {
-    pub fn code(&self, time: &DateTime<Utc>) -> String {
-        let bcd_time = self.bcd_time(time);
+    pub fn new(serial: &str, seed: &str, pin: &str, flags: &str) -> Self {
+        let serial: Vec<_> = {
+            let re = Regex::new(r"^\d{12}$").unwrap();
+            if !re.is_match(&serial) {
+                panic!("the serial needs to be 12 digits");
+            }
+
+            let digits: Vec<_> = serial
+                .chars()
+                .map(|c| c.to_digit(10).unwrap() as u8)
+                .collect();
+            digits.chunks(2).map(|c| bcd(10 * c[0] + c[1])).collect()
+        };
+
+        let seed = {
+            let re = Regex::new(r"^(?:[[:xdigit:]]{2}:){15}[[:xdigit:]]{2}$").unwrap();
+            if !re.is_match(&seed) {
+                panic!("the seed needs to be 16 octets separated by ':'");
+            }
+
+            seed.split(':')
+                .map(|x| u8::from_str_radix(x, 16).unwrap())
+                .collect()
+        };
+
+        let pin = pin.chars().map(|c| c.to_digit(10).unwrap() as u8).collect();
+        let flags = flags.parse().unwrap();
+
+        Token {
+            serial,
+            seed,
+            pin,
+            flags,
+        }
+    }
+
+    pub fn code(&self, time: &str) -> String {
+        let time = DateTime::parse_from_rfc3339(time).unwrap().with_timezone(&Utc);
+        let bcd_time = self.bcd_time(&time);
 
         let key0 = Bytes::from(vec![0; 16]);
         let key1 = Bytes::copy_from_slice(&self.seed);
