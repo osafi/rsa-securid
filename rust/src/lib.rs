@@ -22,11 +22,6 @@ pub struct Token {
     flags: u16,
 }
 
-pub fn code(serial: &str, seed: &str, pin: &str, flags: &str) -> String {
-    let time = Utc::now().to_rfc3339();
-    Token::new(serial, seed, pin, flags).code(&time)
-}
-
 impl Token {
     pub fn new(serial: &str, seed: &str, pin: &str, flags: &str) -> Self {
         let serial: Vec<_> = {
@@ -64,8 +59,7 @@ impl Token {
         }
     }
 
-    pub fn code(&self, time: &str) -> String {
-        let time = DateTime::parse_from_rfc3339(time).unwrap().with_timezone(&Utc);
+    pub fn code(&self, time: &DateTime<Utc>) -> String {
         let bcd_time = self.bcd_time(&time);
 
         let key0 = Bytes::from(vec![0; 16]);

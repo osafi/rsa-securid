@@ -63,7 +63,7 @@ fn main() {
         flags,
     );
 
-    let time = Utc::now().to_rfc3339();
+    let time = Utc::now();
     let code = token.code(&time);
     println!("{}", code);
 }
