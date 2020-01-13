@@ -7,27 +7,24 @@ FLD_DIGIT_MASK = (0b111 << FLD_DIGIT_SHIFT);
 FLD_NUMSECONDS_SHIFT = 0;
 FLD_NUMSECONDS_MASK = (0b11 << FLD_NUMSECONDS_SHIFT);
 
-class String
-  def to_bcd
-    [self].pack("H*").unpack("C*")
-  end
+def bcd(str)
+  [str].pack("H*").unpack("C*")
 end
 
 class Token
-
   def initialize(serial:, seed:, pin: "00000000", flags: 17369)
     fail if serial !~ /^\d{12}$/
     fail if seed !~ /^(?:\h{2}:){15}\h{2}$/
     fail if pin !~ /^\d*$/
 
-    @serial = serial.to_bcd
+    @serial = bcd(serial)
     @seed = seed.split(?:).map {|x| x.to_i(16) }.pack("C*")
     @pin = pin.chars.map(&:to_i)
     @flags = flags
   end
 
   def code(time=Time.now.utc)
-    bcd_time = time.strftime("%Y%m%d%H#{time.min & minute_mask}0000").to_bcd
+    bcd_time = bcd(time.strftime("%Y%m%d%H#{time.min & minute_mask}0000"))
 
     key0 = encrypt(bcd_time[0...2], @seed)
     key1 = encrypt(bcd_time[0...3], key0)
