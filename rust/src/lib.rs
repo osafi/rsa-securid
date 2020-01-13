@@ -95,20 +95,19 @@ impl Token {
             Interval::OneMinute => ((time.minute() as usize) & 0b11) << 2,
         };
 
-        let raw_digits: Vec<_> = u32::from_be_bytes(key0[i..i + 4].try_into().unwrap())
+        let raw: Vec<_> = u32::from_be_bytes(key0[i..i + 4].try_into().unwrap())
             .to_string()
             .chars()
             .map(|c| c.to_digit(10).unwrap() as u8)
             .collect();
 
         let len = ((self.flags & FLD_DIGIT_MASK) >> FLD_DIGIT_SHIFT) as usize;
-        let substr_begin = raw_digits.len() - len - 1;
-        let raw_digits = raw_digits.iter().skip(substr_begin);
-
-        let filled_pin = self.pin.iter().chain([0].iter().cycle());
-        raw_digits
-            .zip(filled_pin)
-            .map(|(x, pin)| x + pin)
+        let skip = raw.len() - len - 1;
+        raw
+            .iter()
+            .skip(skip) // truncate
+            .enumerate()
+            .map(|(i, x)| x + self.pin.get(i).unwrap_or(&0))
             .map(|x| x.to_string())
             .collect()
     }
