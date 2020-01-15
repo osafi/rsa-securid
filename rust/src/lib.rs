@@ -62,22 +62,21 @@ impl Token {
     pub fn code(&self, time: &DateTime<Utc>) -> String {
         let bcd_time = self.bcd_time(&time);
 
-        let key0 = Bytes::from(vec![0; 16]);
         let key1 = Bytes::copy_from_slice(&self.seed);
 
-        let key0 = self.key_from_time(&bcd_time.slice(0..2), &key0);
+        let key0 = self.key_from_time(&bcd_time.slice(0..2));
         let key0 = Self::aes128_ecb_encrypt(&key0, &key1);
 
-        let key1 = self.key_from_time(&bcd_time.slice(0..3), &key1);
+        let key1 = self.key_from_time(&bcd_time.slice(0..3));
         let key1 = Self::aes128_ecb_encrypt(&key1, &key0);
 
-        let key0 = self.key_from_time(&bcd_time.slice(0..4), &key0);
+        let key0 = self.key_from_time(&bcd_time.slice(0..4));
         let key0 = Self::aes128_ecb_encrypt(&key0, &key1);
 
-        let key1 = self.key_from_time(&bcd_time.slice(0..5), &key1);
+        let key1 = self.key_from_time(&bcd_time.slice(0..5));
         let key1 = Self::aes128_ecb_encrypt(&key1, &key0);
 
-        let key0 = self.key_from_time(&bcd_time.slice(0..8), &key0);
+        let key0 = self.key_from_time(&bcd_time.slice(0..8));
         let key0 = Self::aes128_ecb_encrypt(&key0, &key1);
 
         let i = match self.interval() {
@@ -118,7 +117,7 @@ impl Token {
         Bytes::from(output).slice(0..16)
     }
 
-    fn key_from_time(&self, bcd_time_slice: &Bytes, key: &Bytes) -> Bytes {
+    fn key_from_time(&self, bcd_time_slice: &Bytes) -> Bytes {
         let mut bytes = BytesMut::new();
         bytes.resize(16, 0);
 
@@ -133,7 +132,7 @@ impl Token {
                 }
                 8..=11 => self.serial[i - 6],
                 12..=15 => 0xbb,
-                _ => key[i],
+                _ => unreachable!(),
             }
         }
 
