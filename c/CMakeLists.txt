@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(RSASecurID)
+project(rsa-token)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
@@ -11,4 +11,6 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 set(SOURCE_FILES securid.c aes.c aes.h securid.h)
 
-add_executable(RSASecurID ${SOURCE_FILES})
+add_executable(rsa-token ${SOURCE_FILES})
+
+install(TARGETS rsa-token DESTINATION bin)
