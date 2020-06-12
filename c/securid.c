@@ -117,11 +117,12 @@ int main(int argc, char **argv) {
         p += 3;
     }
     strcpy(token->serial, argv[1]);
-    strcpy(token->pin, "111111");
+    strcpy(token->pin, "00000000");
     token->flags = 17369;
     securid_compute_tokencode(token, time(NULL), code);
 
-    puts(code + 2);
+    // puts(code + 2); // for 6 digit token
+    puts(code);
 
     return 0;
 }
