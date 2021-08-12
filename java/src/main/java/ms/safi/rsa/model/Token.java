@@ -52,6 +52,7 @@ public class Token {
         this.seedOctets = seedOctets;
     }
 
+    @ApiModelProperty(hidden = true)
     public int[] getSeed() {
         return Arrays.stream(seedOctets.split(":"))
                      .map(h -> Integer.parseInt(h, 16))
@@ -83,6 +84,7 @@ public class Token {
         this.length = length;
     }
 
+    @ApiModelProperty(hidden = true)
     public int getInterval() {
         int FLD_NUMSECONDS_SHIFT = 0;
         int FLD_NUMSECONDS_MASK = (0x03 << FLD_NUMSECONDS_SHIFT);
